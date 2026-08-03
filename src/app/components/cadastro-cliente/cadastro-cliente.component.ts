@@ -1,5 +1,3 @@
-import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import {
   FormBuilder,
   FormControl,
@@ -7,13 +5,23 @@ import {
   ReactiveFormsModule,
   Validators
 } from '@angular/forms';
-
+import { Component } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
 import { Cliente } from '../models/cliente';
+
+interface Municipio {
+  id: number;
+  nome: string;
+}
 
 @Component({
   selector: 'app-cadastro-clientes',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule
+  ],
   templateUrl: './cadastro-cliente.component.html',
   styleUrl: './cadastro-cliente.component.css'
 })
@@ -26,6 +34,9 @@ export class CadastroClienteComponent {
   listaClientes: Cliente[] = [];
   clientesFiltrados: Cliente[] = [];
 
+  municipios: Municipio[] = [];
+  carregandoMunicipios = false;
+
   clienteEditandoId: string | null = null;
 
   ufs: string[] = [
@@ -35,7 +46,10 @@ export class CadastroClienteComponent {
     'RO', 'RR', 'SC', 'SP', 'SE', 'TO'
   ];
 
-  constructor(private formBuilder: FormBuilder) {
+  constructor(
+    private formBuilder: FormBuilder,
+    private http: HttpClient
+  ) {
     this.formularioCliente = this.formBuilder.group({
       nome: ['', [Validators.required, Validators.minLength(3)]],
       email: ['', [Validators.required, Validators.email]],
@@ -47,6 +61,45 @@ export class CadastroClienteComponent {
 
     this.campoPesquisa.valueChanges.subscribe(() => {
       this.pesquisarCliente();
+    });
+
+    this.formularioCliente.get('uf')?.valueChanges.subscribe(uf => {
+      this.carregarMunicipios(uf);
+    });
+  }
+
+  carregarMunicipios(uf: string): void {
+    this.municipios = [];
+
+    this.formularioCliente.get('municipio')?.reset('', {
+      emitEvent: false
+    });
+
+    if (!uf) {
+      this.carregandoMunicipios = false;
+      return;
+    }
+
+    this.carregandoMunicipios = true;
+
+    const url =
+      `https://servicodados.ibge.gov.br/api/v1/localidades/estados/${uf}/municipios`;
+
+    this.http.get<Municipio[]>(url).subscribe({
+      next: municipios => {
+        this.municipios = municipios.sort((a, b) =>
+          a.nome.localeCompare(b.nome)
+        );
+
+        this.carregandoMunicipios = false;
+      },
+
+      error: erro => {
+        console.error('Erro ao carregar municípios:', erro);
+
+        this.municipios = [];
+        this.carregandoMunicipios = false;
+      }
     });
   }
 
@@ -100,8 +153,33 @@ export class CadastroClienteComponent {
       email: cliente.email,
       cpf: cliente.cpf,
       dataNascimento: cliente.dataNascimento,
-      uf: cliente.uf,
-      municipio: cliente.municipio
+      uf: cliente.uf
+    });
+
+    const url =
+      `https://servicodados.ibge.gov.br/api/v1/localidades/estados/${cliente.uf}/municipios`;
+
+    this.carregandoMunicipios = true;
+
+    this.http.get<Municipio[]>(url).subscribe({
+      next: municipios => {
+        this.municipios = municipios.sort((a, b) =>
+          a.nome.localeCompare(b.nome)
+        );
+
+        this.formularioCliente.patchValue({
+          municipio: cliente.municipio
+        });
+
+        this.carregandoMunicipios = false;
+      },
+
+      error: erro => {
+        console.error('Erro ao carregar municípios:', erro);
+
+        this.municipios = [];
+        this.carregandoMunicipios = false;
+      }
     });
   }
 
@@ -127,7 +205,8 @@ export class CadastroClienteComponent {
       dataNascimento:
         this.formularioCliente.value.dataNascimento,
       uf: this.formularioCliente.value.uf,
-      municipio: this.formularioCliente.value.municipio
+      municipio:
+        this.formularioCliente.value.municipio
     };
 
     this.atualizarListaExibida();
@@ -149,5 +228,7 @@ export class CadastroClienteComponent {
   limparFormulario(): void {
     this.formularioCliente.reset();
     this.clienteEditandoId = null;
+    this.municipios = [];
+    this.carregandoMunicipios = false;
   }
 }
