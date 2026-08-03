@@ -2,6 +2,7 @@ import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   FormBuilder,
+  FormControl,
   FormGroup,
   ReactiveFormsModule,
   Validators
@@ -19,7 +20,11 @@ import { Cliente } from '../models/cliente';
 export class CadastroClienteComponent {
 
   formularioCliente: FormGroup;
+
+  campoPesquisa = new FormControl('');
+
   listaClientes: Cliente[] = [];
+  clientesFiltrados: Cliente[] = [];
 
   clienteEditandoId: string | null = null;
 
@@ -33,16 +38,15 @@ export class CadastroClienteComponent {
   constructor(private formBuilder: FormBuilder) {
     this.formularioCliente = this.formBuilder.group({
       nome: ['', [Validators.required, Validators.minLength(3)]],
-
       email: ['', [Validators.required, Validators.email]],
-
       cpf: ['', [Validators.required]],
-
       dataNascimento: ['', [Validators.required]],
-
       uf: ['', [Validators.required]],
-
       municipio: ['', [Validators.required]]
+    });
+
+    this.campoPesquisa.valueChanges.subscribe(() => {
+      this.pesquisarCliente();
     });
   }
 
@@ -66,7 +70,26 @@ export class CadastroClienteComponent {
 
     this.listaClientes.push(cliente);
 
+    this.atualizarListaExibida();
     this.limparFormulario();
+  }
+
+  pesquisarCliente(): void {
+    const termo =
+      this.campoPesquisa.value?.trim().toLowerCase() ?? '';
+
+    if (termo === '') {
+      this.clientesFiltrados = [...this.listaClientes];
+      return;
+    }
+
+    this.clientesFiltrados = this.listaClientes.filter(cliente =>
+      cliente.nome.toLowerCase().includes(termo)
+    );
+  }
+
+  limparPesquisa(): void {
+    this.campoPesquisa.setValue('');
   }
 
   editarCliente(cliente: Cliente): void {
@@ -107,6 +130,7 @@ export class CadastroClienteComponent {
       municipio: this.formularioCliente.value.municipio
     };
 
+    this.atualizarListaExibida();
     this.limparFormulario();
   }
 
@@ -114,6 +138,12 @@ export class CadastroClienteComponent {
     this.listaClientes = this.listaClientes.filter(
       cliente => cliente.id !== id
     );
+
+    this.atualizarListaExibida();
+  }
+
+  atualizarListaExibida(): void {
+    this.pesquisarCliente();
   }
 
   limparFormulario(): void {

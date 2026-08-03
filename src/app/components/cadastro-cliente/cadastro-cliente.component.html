@@ -1,86 +1,164 @@
 <div class="container">
 
-  <h2>Cadastro de Clientes</h2>
+  <h1>Cadastro de Clientes</h1>
 
-  <form [formGroup]="formularioCliente">
+  <form
+    [formGroup]="formularioCliente"
+    class="formulario"
+  >
 
-    <div>
-      <label>Nome</label>
-      <input type="text" formControlName="nome">
+    <div class="campo">
+      <label for="nome">Nome</label>
 
-      @if (formularioCliente.get('nome')?.invalid &&
-      formularioCliente.get('nome')?.touched) {
-        <small>Nome obrigatório.</small>
+      <input
+        id="nome"
+        type="text"
+        formControlName="nome"
+        placeholder="Digite o nome completo"
+      >
+
+      @if (
+        formularioCliente.get('nome')?.invalid &&
+        formularioCliente.get('nome')?.touched
+      ) {
+        <small class="erro">
+          O nome é obrigatório e deve ter pelo menos 3 caracteres.
+        </small>
       }
     </div>
 
-    <div>
-      <label>E-mail</label>
-      <input type="email" formControlName="email">
+    <div class="campo">
+      <label for="email">E-mail</label>
 
-      @if (formularioCliente.get('email')?.invalid &&
-      formularioCliente.get('email')?.touched) {
-        <small>E-mail inválido.</small>
+      <input
+        id="email"
+        type="email"
+        formControlName="email"
+        placeholder="exemplo@email.com"
+      >
+
+      @if (
+        formularioCliente.get('email')?.invalid &&
+        formularioCliente.get('email')?.touched
+      ) {
+        <small class="erro">
+          Digite um e-mail válido.
+        </small>
       }
     </div>
 
-    <div>
-      <label>CPF</label>
-      <input type="text" formControlName="cpf">
+    <div class="campo">
+      <label for="cpf">CPF</label>
+
+      <input
+        id="cpf"
+        type="text"
+        formControlName="cpf"
+        placeholder="000.000.000-00"
+      >
+
+      @if (
+        formularioCliente.get('cpf')?.invalid &&
+        formularioCliente.get('cpf')?.touched
+      ) {
+        <small class="erro">
+          O CPF é obrigatório.
+        </small>
+      }
     </div>
 
-    <div>
-      <label>Data de Nascimento</label>
-      <input type="date" formControlName="dataNascimento">
+    <div class="campo">
+      <label for="dataNascimento">
+        Data de nascimento
+      </label>
+
+      <input
+        id="dataNascimento"
+        type="date"
+        formControlName="dataNascimento"
+      >
+
+      @if (
+        formularioCliente.get('dataNascimento')?.invalid &&
+        formularioCliente.get('dataNascimento')?.touched
+      ) {
+        <small class="erro">
+          A data de nascimento é obrigatória.
+        </small>
+      }
     </div>
 
-    <div>
-      <label>UF</label>
+    <div class="campo">
+      <label for="uf">UF</label>
 
-      <select formControlName="uf">
-        <option value="">Selecione...</option>
+      <select
+        id="uf"
+        formControlName="uf"
+      >
+        <option value="">
+          Selecione uma UF
+        </option>
 
         @for (uf of ufs; track uf) {
-          <option [value]="uf">{{ uf }}</option>
+          <option [value]="uf">
+            {{ uf }}
+          </option>
         }
       </select>
+
+      @if (
+        formularioCliente.get('uf')?.invalid &&
+        formularioCliente.get('uf')?.touched
+      ) {
+        <small class="erro">
+          Selecione uma UF.
+        </small>
+      }
     </div>
 
-    <div>
-      <label>Município</label>
-      <input type="text" formControlName="municipio">
+    <div class="campo">
+      <label for="municipio">Município</label>
+
+      <input
+        id="municipio"
+        type="text"
+        formControlName="municipio"
+        placeholder="Digite o município"
+      >
+
+      @if (
+        formularioCliente.get('municipio')?.invalid &&
+        formularioCliente.get('municipio')?.touched
+      ) {
+        <small class="erro">
+          O município é obrigatório.
+        </small>
+      }
     </div>
 
-    <div>
+    <div class="botoes">
 
       @if (clienteEditandoId === null) {
-
         <button
           type="button"
-          (click)="cadastrarCliente()">
-
-          Cadastrar
-
+          (click)="cadastrarCliente()"
+        >
+          Cadastrar cliente
         </button>
-
       } @else {
-
         <button
           type="button"
-          (click)="atualizarCliente()">
-
-          Atualizar
-
+          (click)="atualizarCliente()"
+        >
+          Atualizar cliente
         </button>
-
       }
 
       <button
         type="button"
-        (click)="limparFormulario()">
-
-        Limpar
-
+        (click)="limparFormulario()"
+      >
+        Limpar formulário
       </button>
 
     </div>
@@ -89,59 +167,107 @@
 
   <hr>
 
-  <h2>Clientes Cadastrados</h2>
+  <section class="consulta">
 
-  <table>
+    <h2>Consultar clientes</h2>
 
-    <thead>
-      <tr>
-        <th>Nome</th>
-        <th>E-mail</th>
-        <th>CPF</th>
-        <th>UF</th>
-        <th>Município</th>
-        <th>Ações</th>
-      </tr>
-    </thead>
+    <div class="pesquisa">
 
-    <tbody>
+      <label for="pesquisa">
+        Pesquisar por nome
+      </label>
 
-      @for (cliente of listaClientes; track cliente.id) {
+      <input
+        id="pesquisa"
+        type="text"
+        [formControl]="campoPesquisa"
+        placeholder="Digite o nome do cliente"
+      >
 
-        <tr>
+      <button
+        type="button"
+        (click)="limparPesquisa()"
+      >
+        Limpar pesquisa
+      </button>
 
-          <td>{{ cliente.nome }}</td>
-          <td>{{ cliente.email }}</td>
-          <td>{{ cliente.cpf }}</td>
-          <td>{{ cliente.uf }}</td>
-          <td>{{ cliente.municipio }}</td>
+    </div>
 
-          <td>
+    @if (clientesFiltrados.length > 0) {
 
-            <button
-              type="button"
-              (click)="editarCliente(cliente)">
+      <div class="tabela-container">
 
-              Editar
+        <table>
 
-            </button>
+          <thead>
+            <tr>
+              <th>Nome</th>
+              <th>E-mail</th>
+              <th>CPF</th>
+              <th>Data de nascimento</th>
+              <th>UF</th>
+              <th>Município</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
 
-            <button
-              type="button"
-              (click)="excluirCliente(cliente.id)">
+          <tbody>
 
-              Excluir
+            @for (
+              cliente of clientesFiltrados;
+              track cliente.id
+            ) {
+              <tr>
 
-            </button>
+                <td>{{ cliente.nome }}</td>
 
-          </td>
+                <td>{{ cliente.email }}</td>
 
-        </tr>
+                <td>{{ cliente.cpf }}</td>
 
-      }
+                <td>
+                  {{ cliente.dataNascimento }}
+                </td>
 
-    </tbody>
+                <td>{{ cliente.uf }}</td>
 
-  </table>
+                <td>{{ cliente.municipio }}</td>
+
+                <td class="acoes">
+
+                  <button
+                    type="button"
+                    (click)="editarCliente(cliente)"
+                  >
+                    Editar
+                  </button>
+
+                  <button
+                    type="button"
+                    (click)="excluirCliente(cliente.id)"
+                  >
+                    Excluir
+                  </button>
+
+                </td>
+
+              </tr>
+            }
+
+          </tbody>
+
+        </table>
+
+      </div>
+
+    } @else {
+
+      <p class="mensagem-vazia">
+        Nenhum cliente encontrado.
+      </p>
+
+    }
+
+  </section>
 
 </div>
