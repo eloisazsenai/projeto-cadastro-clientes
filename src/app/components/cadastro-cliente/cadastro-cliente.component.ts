@@ -55,6 +55,16 @@ export class CadastroClienteComponent {
   // Informa à tela que existe uma requisição em andamento.
   carregandoMunicipios = false;
 
+  // Guarda uma mensagem amigável caso a consulta ao IBGE não possa ser concluída.
+  erroMunicipios = '';
+
+  /*
+   * Cada consulta recebe um número. Se a pessoa trocar de UF muito rápido, uma
+   * resposta antiga pode chegar depois da nova. Este contador permite ignorar
+   * essa resposta atrasada e evita mostrar municípios do estado errado.
+   */
+  private numeroConsultaMunicipios = 0;
+
   // null significa "novo cadastro"; um id significa "edição em andamento".
   clienteEditandoId: string | null = null;
 
@@ -82,7 +92,8 @@ export class CadastroClienteComponent {
       cpf: ['', [Validators.required]],
       dataNascimento: ['', [Validators.required]],
       uf: ['', [Validators.required]],
-      municipio: ['', [Validators.required]]
+      // O município começa desabilitado e só é liberado após selecionar uma UF.
+      municipio: [{ value: '', disabled: true }, [Validators.required]]
     });
 
     // valueChanges é um fluxo de eventos: executa a pesquisa a cada digitação.
@@ -97,16 +108,26 @@ export class CadastroClienteComponent {
     });
   }
 
-  /** Busca na API do IBGE os municípios pertencentes à UF selecionada. */
-  carregarMunicipios(uf: string): void {
+  /**
+   * Busca na API do IBGE os municípios pertencentes à UF selecionada.
+   * O segundo parâmetro é usado na edição para restaurar o município do cliente.
+   */
+  carregarMunicipios(uf: string, municipioSelecionado = ''): void {
+    const consultaAtual = ++this.numeroConsultaMunicipios;
+    const controleMunicipio = this.formularioCliente.get('municipio');
+
     // Remove opções da seleção anterior para não misturar estados diferentes.
     this.municipios = [];
+    this.erroMunicipios = '';
 
     // Também limpa o município escolhido anteriormente. emitEvent: false evita
     // disparar eventos desnecessários durante essa limpeza feita pelo código.
-    this.formularioCliente.get('municipio')?.reset('', {
+    controleMunicipio?.reset('', {
       emitEvent: false
     });
+
+    // Enquanto não há opções válidas, o select fica bloqueado.
+    controleMunicipio?.disable({ emitEvent: false });
 
     // Sem UF não existe nada para consultar, então encerramos o método cedo.
     if (!uf) {
@@ -126,18 +147,40 @@ export class CadastroClienteComponent {
      */
     this.http.get<Municipio[]>(url).subscribe({
       next: municipios => {
+        // Se outra UF já foi escolhida, esta resposta ficou velha e é descartada.
+        if (consultaAtual !== this.numeroConsultaMunicipios) {
+          return;
+        }
+
         // localeCompare ordena corretamente os nomes em ordem alfabética.
         this.municipios = municipios.sort((a, b) =>
           a.nome.localeCompare(b.nome)
         );
 
+        // Agora existem opções compatíveis com a UF e o campo pode ser usado.
+        controleMunicipio?.enable({ emitEvent: false });
+
+        // Durante uma edição, seleciona novamente o município salvo do cliente.
+        if (municipioSelecionado) {
+          controleMunicipio?.setValue(municipioSelecionado, {
+            emitEvent: false
+          });
+        }
+
         this.carregandoMunicipios = false;
       },
 
       error: erro => {
+        // Uma resposta antiga também não deve sobrescrever o estado da consulta atual.
+        if (consultaAtual !== this.numeroConsultaMunicipios) {
+          return;
+        }
+
         console.error('Erro ao carregar municípios:', erro);
 
         this.municipios = [];
+        this.erroMunicipios =
+          'Não foi possível carregar os municípios. Tente selecionar a UF novamente.';
         this.carregandoMunicipios = false;
       }
     });
@@ -203,43 +246,17 @@ export class CadastroClienteComponent {
     this.clienteEditandoId = cliente.id;
 
     // patchValue altera apenas os campos informados, preservando os demais.
+    // emitEvent: false impede que a mudança da UF faça uma consulta duplicada.
     this.formularioCliente.patchValue({
       nome: cliente.nome,
       email: cliente.email,
       cpf: cliente.cpf,
       dataNascimento: cliente.dataNascimento,
       uf: cliente.uf
-    });
+    }, { emitEvent: false });
 
-    const url =
-      `https://servicodados.ibge.gov.br/api/v1/localidades/estados/${cliente.uf}/municipios`;
-
-    this.carregandoMunicipios = true;
-
-    /*
-     * A lista de municípios precisa chegar antes de selecionar o município do
-     * cliente. Por isso esse patchValue acontece dentro do next da requisição.
-     */
-    this.http.get<Municipio[]>(url).subscribe({
-      next: municipios => {
-        this.municipios = municipios.sort((a, b) =>
-          a.nome.localeCompare(b.nome)
-        );
-
-        this.formularioCliente.patchValue({
-          municipio: cliente.municipio
-        });
-
-        this.carregandoMunicipios = false;
-      },
-
-      error: erro => {
-        console.error('Erro ao carregar municípios:', erro);
-
-        this.municipios = [];
-        this.carregandoMunicipios = false;
-      }
-    });
+    // Carrega as opções antes de restaurar o município salvo.
+    this.carregarMunicipios(cliente.uf, cliente.municipio);
   }
 
   /** Substitui na lista os dados do cliente que está sendo editado. */
@@ -293,10 +310,15 @@ export class CadastroClienteComponent {
 
   /** Volta o formulário e o estado da tela ao modo de novo cadastro. */
   limparFormulario(): void {
+    // Invalida uma eventual resposta do IBGE que ainda esteja a caminho.
+    this.numeroConsultaMunicipios++;
+
     // reset limpa os valores e também estados como touched e dirty.
     this.formularioCliente.reset();
+    this.formularioCliente.get('municipio')?.disable({ emitEvent: false });
     this.clienteEditandoId = null;
     this.municipios = [];
     this.carregandoMunicipios = false;
+    this.erroMunicipios = '';
   }
 }

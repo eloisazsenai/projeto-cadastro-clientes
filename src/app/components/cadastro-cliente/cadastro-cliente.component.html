@@ -133,14 +133,42 @@
     <div class="campo">
       <label for="municipio">Município</label>
 
-       <input
+      <!--
+        Diferente de um input de texto, o select limita a escolha às opções
+        recebidas da API do IBGE. Ele permanece desabilitado até que uma UF seja
+        selecionada e a requisição termine com sucesso.
+      -->
+      <select
         id="municipio"
-        type="text"
         formControlName="municipio"
-        placeholder="Digite o município"
       >
+        <option value="">
+          @if (carregandoMunicipios) {
+            Carregando municípios...
+          } @else if (!formularioCliente.get('uf')?.value) {
+            Selecione uma UF primeiro
+          } @else {
+            Selecione um município
+          }
+        </option>
+
+        <!-- Cada objeto devolvido pelo IBGE se transforma em uma opção. -->
+        @for (municipio of municipios; track municipio.id) {
+          <option [value]="municipio.nome">
+            {{ municipio.nome }}
+          </option>
+        }
+      </select>
+
+      <!-- Falhas de rede são diferentes de erros de validação do formulário. -->
+      @if (erroMunicipios) {
+        <small class="erro">
+          {{ erroMunicipios }}
+        </small>
+      }
 
       @if (
+        !erroMunicipios &&
         formularioCliente.get('municipio')?.invalid &&
         formularioCliente.get('municipio')?.touched
       ) {
