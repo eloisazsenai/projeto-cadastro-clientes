@@ -1,0 +1,19 @@
+.menu {
+  display: flex;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: #1f2937;
+}
+
+.menu a {
+  padding: 0.65rem 1rem;
+  color: #ffffff;
+  text-decoration: none;
+  border-radius: 0.4rem;
+}
+
+/* RouterLinkActive acrescenta esta classe somente ao link da página atual. */
+.menu a:hover,
+.menu a.ativo {
+  background: #2563eb;
+}

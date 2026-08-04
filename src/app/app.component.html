@@ -1,6 +1,10 @@
 <!--
   O componente raiz funciona como a "moldura" da aplicação. Esta tag não é um
-  elemento nativo do HTML: ela corresponde ao selector declarado no componente
-  CadastroClienteComponent e faz o Angular renderizar seu template aqui.
+  elemento nativo do HTML. O menu permanece visível enquanto o router-outlet
+  troca apenas o conteúdo da página conforme o endereço selecionado.
 -->
-<app-cadastro-clientes></app-cadastro-clientes>
+<app-menu></app-menu>
+
+<main>
+  <router-outlet></router-outlet>
+</main>

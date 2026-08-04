@@ -1,0 +1,51 @@
+<section class="consulta">
+  <h1>Consultar clientes</h1>
+
+  <div class="pesquisa">
+    <label for="pesquisa">Pesquisar por nome</label>
+    <input
+      id="pesquisa"
+      type="text"
+      [formControl]="campoPesquisa"
+      placeholder="Digite o nome do cliente"
+    >
+    <button type="button" (click)="limparPesquisa()">Limpar pesquisa</button>
+  </div>
+
+  @if (clientesFiltrados.length > 0) {
+    <div class="tabela-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Nome</th>
+            <th>E-mail</th>
+            <th>CPF</th>
+            <th>Data de nascimento</th>
+            <th>UF</th>
+            <th>Município</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- O id é estável e ajuda o Angular a atualizar somente a linha alterada. -->
+          @for (cliente of clientesFiltrados; track cliente.id) {
+            <tr>
+              <td>{{ cliente.nome }}</td>
+              <td>{{ cliente.email }}</td>
+              <td>{{ cliente.cpf }}</td>
+              <td>{{ cliente.dataNascimento }}</td>
+              <td>{{ cliente.uf }}</td>
+              <td>{{ cliente.municipio }}</td>
+              <td class="acoes">
+                <button type="button" (click)="editarCliente(cliente.id)">Editar</button>
+                <button type="button" (click)="excluirCliente(cliente.id)">Excluir</button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  } @else {
+    <p>Nenhum cliente encontrado.</p>
+  }
+</section>

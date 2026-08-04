@@ -1,6 +1,5 @@
 import {
   FormBuilder,
-  FormControl,
   FormGroup,
   ReactiveFormsModule,
   Validators
@@ -8,7 +7,9 @@ import {
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
+import { ActivatedRoute, Router } from '@angular/router';
 import { Cliente } from '../models/cliente';
+import { ClienteService } from '../../services/cliente.service';
 
 // Define apenas o formato dos dados de município retornados pela API do IBGE.
 // Uma interface existe para ajudar o TypeScript e não gera código no navegador.
@@ -18,9 +19,9 @@ interface Municipio {
 }
 
 /*
- * Componente responsável por toda a tela de cadastro e consulta de clientes.
- * Ele mantém o estado da tela (formulário, listas e modo de edição) e oferece os
- * métodos chamados pelo HTML quando a pessoa clica nos botões.
+ * Componente responsável pela página de cadastro e edição de clientes.
+ * A consulta fica no ListaComponent, e os dados compartilhados entre as duas
+ * páginas ficam no ClienteService.
  */
 @Component({
   selector: 'app-cadastro-clientes',
@@ -38,16 +39,6 @@ export class CadastroClienteComponent {
 
   // FormGroup reúne e gerencia todos os campos do formulário de cliente.
   formularioCliente: FormGroup;
-
-  // Este campo é independente do formulário porque pertence à área de pesquisa.
-  campoPesquisa = new FormControl('');
-
-  // listaClientes guarda todos os cadastros apenas na memória do navegador.
-  // Ao atualizar ou fechar a página, os dados somem, pois não há banco de dados.
-  listaClientes: Cliente[] = [];
-
-  // clientesFiltrados contém somente os registros que devem aparecer na tabela.
-  clientesFiltrados: Cliente[] = [];
 
   // Opções carregadas da API do IBGE para a UF selecionada.
   municipios: Municipio[] = [];
@@ -79,7 +70,10 @@ export class CadastroClienteComponent {
   constructor(
     // O Angular injeta estas dependências automaticamente.
     private formBuilder: FormBuilder,
-    private http: HttpClient
+    private http: HttpClient,
+    private clienteService: ClienteService,
+    private route: ActivatedRoute,
+    private router: Router
   ) {
     /*
      * Cria os controles do formulário. Cada item contém o valor inicial e suas
@@ -96,15 +90,29 @@ export class CadastroClienteComponent {
       municipio: [{ value: '', disabled: true }, [Validators.required]]
     });
 
-    // valueChanges é um fluxo de eventos: executa a pesquisa a cada digitação.
-    this.campoPesquisa.valueChanges.subscribe(() => {
-      this.pesquisarCliente();
-    });
-
     // Quando a UF muda, busca os municípios correspondentes.
     // "?." só continua se o controle "uf" realmente existir.
     this.formularioCliente.get('uf')?.valueChanges.subscribe(uf => {
       this.carregarMunicipios(uf);
+    });
+
+    /*
+     * A rota /cadastro/:id possui um parâmetro chamado id. Quando ele existe,
+     * buscamos o cliente no serviço e preenchemos o formulário para edição.
+     */
+    this.route.paramMap.subscribe(parametros => {
+      const id = parametros.get('id');
+
+      if (id) {
+        const cliente = this.clienteService.buscarPorId(id);
+
+        if (cliente) {
+          this.editarCliente(cliente);
+        } else {
+          // Um id inexistente não pode ser editado; voltamos para a consulta.
+          this.router.navigate(['/consulta']);
+        }
+      }
     });
   }
 
@@ -209,36 +217,10 @@ export class CadastroClienteComponent {
     cliente.municipio =
       this.formularioCliente.value.municipio;
 
-    // push insere o novo objeto no fim do array.
-    this.listaClientes.push(cliente);
-
-    // Sincroniza a tabela com o filtro atual e prepara o formulário para o próximo uso.
-    this.atualizarListaExibida();
+    // O serviço compartilhado torna o cadastro visível também na página de consulta.
+    this.clienteService.adicionar(cliente);
     this.limparFormulario();
-  }
-
-  /** Filtra clientes cujo nome contém o texto digitado na pesquisa. */
-  pesquisarCliente(): void {
-    // trim remove espaços nas pontas e toLowerCase ignora maiúsculas/minúsculas.
-    // "?? ''" usa texto vazio se o controle não tiver um valor.
-    const termo =
-      this.campoPesquisa.value?.trim().toLowerCase() ?? '';
-
-    if (termo === '') {
-      // O spread cria uma nova cópia do array, em vez de compartilhar a referência.
-      this.clientesFiltrados = [...this.listaClientes];
-      return;
-    }
-
-    // filter cria um novo array somente com os itens que passam no teste.
-    this.clientesFiltrados = this.listaClientes.filter(cliente =>
-      cliente.nome.toLowerCase().includes(termo)
-    );
-  }
-
-  /** Limpa o campo; a inscrição em valueChanges refaz a lista automaticamente. */
-  limparPesquisa(): void {
-    this.campoPesquisa.setValue('');
+    this.router.navigate(['/consulta']);
   }
 
   /** Preenche o formulário com um cliente e muda a tela para o modo de edição. */
@@ -266,18 +248,9 @@ export class CadastroClienteComponent {
       return;
     }
 
-    // findIndex devolve a posição do cliente no array ou -1 se não o encontrar.
-    const indice = this.listaClientes.findIndex(
-      cliente => cliente.id === this.clienteEditandoId
-    );
-
-    if (indice === -1) {
-      return;
-    }
-
-    // Substitui o objeto naquela posição e conserva o id original.
+    // Cria o objeto atualizado e conserva o id original.
     // O "!" afirma ao TypeScript que aqui o id não é null, pois estamos editando.
-    this.listaClientes[indice] = {
+    const clienteAtualizado: Cliente = {
       id: this.clienteEditandoId!,
       nome: this.formularioCliente.value.nome,
       email: this.formularioCliente.value.email,
@@ -289,23 +262,9 @@ export class CadastroClienteComponent {
         this.formularioCliente.value.municipio
     };
 
-    this.atualizarListaExibida();
+    this.clienteService.atualizar(clienteAtualizado);
     this.limparFormulario();
-  }
-
-  /** Remove da lista o cliente que possui o id recebido. */
-  excluirCliente(id: string): void {
-    // Mantém todos os clientes, exceto aquele cujo id deve ser excluído.
-    this.listaClientes = this.listaClientes.filter(
-      cliente => cliente.id !== id
-    );
-
-    this.atualizarListaExibida();
-  }
-
-  /** Reaplica a pesquisa atual depois que os dados da lista mudam. */
-  atualizarListaExibida(): void {
-    this.pesquisarCliente();
+    this.router.navigate(['/consulta']);
   }
 
   /** Volta o formulário e o estado da tela ao modo de novo cadastro. */

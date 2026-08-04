@@ -1,6 +1,6 @@
 import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
-import { CadastroClienteComponent } from './components/cadastro-cliente/cadastro-cliente.component';
+import { MenuComponent } from './components/menu/menu.component';
 
 /*
  * @Component transforma a classe abaixo em um componente Angular.
@@ -14,8 +14,8 @@ import { CadastroClienteComponent } from './components/cadastro-cliente/cadastro
   // Standalone dispensa a criação de um AppModule para registrar o componente.
   standalone: true,
 
-  // Componentes e recursos que este template tem permissão para utilizar.
-  imports: [RouterOutlet, CadastroClienteComponent],
+  // RouterOutlet mostra a página atual e MenuComponent permanece sempre visível.
+  imports: [RouterOutlet, MenuComponent],
   templateUrl: './app.component.html',
   styleUrl: './app.component.css'
 })
