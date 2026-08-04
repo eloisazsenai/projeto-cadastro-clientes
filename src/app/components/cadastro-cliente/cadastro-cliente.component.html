@@ -2,6 +2,11 @@
 
   <h1>Cadastro de Clientes</h1>
 
+  <!--
+    [formGroup] é um property binding: os colchetes passam ao HTML o objeto
+    FormGroup criado no TypeScript. A partir daqui, cada formControlName liga
+    um elemento visual ao controle de mesmo nome no formulário.
+  -->
   <form
     [formGroup]="formularioCliente"
     class="formulario"
@@ -17,6 +22,10 @@
         placeholder="Digite o nome completo"
       >
 
+      <!--
+        @if é o controle de fluxo do Angular. A mensagem só entra no HTML quando
+        o campo é inválido E já foi tocado, evitando mostrar erro antes do uso.
+      -->
       @if (
         formularioCliente.get('nome')?.invalid &&
         formularioCliente.get('nome')?.touched
@@ -99,6 +108,11 @@
           Selecione uma UF
         </option>
 
+        <!--
+          @for repete a option para cada sigla do array ufs. "track uf" ajuda o
+          Angular a identificar cada opção e atualizar somente o que mudou.
+          [value] envia o valor da variável uf, não o texto literal "uf".
+        -->
         @for (uf of ufs; track uf) {
           <option [value]="uf">
             {{ uf }}
@@ -138,6 +152,11 @@
 
     <div class="botoes">
 
+      <!--
+        O id nulo indica um cadastro novo. Quando existe um id, o mesmo espaço
+        mostra o botão de atualização. (click) é um event binding: ao ocorrer o
+        clique, o Angular chama o método correspondente no TypeScript.
+      -->
       @if (clienteEditandoId === null) {
         <button
           type="button"
@@ -177,6 +196,10 @@
         Pesquisar por nome
       </label>
 
+      <!--
+        Como a pesquisa é um FormControl independente, usa [formControl] em
+        vez de formControlName. O valor continua sincronizado com o TypeScript.
+      -->
       <input
         id="pesquisa"
         type="text"
@@ -193,6 +216,7 @@
 
     </div>
 
+    <!-- Só cria a tabela quando há pelo menos um cliente para exibir. -->
     @if (clientesFiltrados.length > 0) {
 
       <div class="tabela-container">
@@ -213,12 +237,17 @@
 
           <tbody>
 
+            <!--
+              Cria uma linha para cada cliente filtrado. "track cliente.id" usa
+              o identificador único para o Angular reaproveitar linhas existentes.
+            -->
             @for (
               cliente of clientesFiltrados;
               track cliente.id
             ) {
               <tr>
 
+                <!-- {{ }} é interpolação: exibe no HTML um valor do TypeScript. -->
                 <td>{{ cliente.nome }}</td>
 
                 <td>{{ cliente.email }}</td>
@@ -262,6 +291,7 @@
 
     } @else {
 
+      <!-- Este bloco alternativo aparece quando a lista filtrada está vazia. -->
       <p class="mensagem-vazia">
         Nenhum cliente encontrado.
       </p>

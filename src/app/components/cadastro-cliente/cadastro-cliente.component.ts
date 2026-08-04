@@ -10,16 +10,25 @@ import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { Cliente } from '../models/cliente';
 
+// Define apenas o formato dos dados de município retornados pela API do IBGE.
+// Uma interface existe para ajudar o TypeScript e não gera código no navegador.
 interface Municipio {
   id: number;
   nome: string;
 }
 
+/*
+ * Componente responsável por toda a tela de cadastro e consulta de clientes.
+ * Ele mantém o estado da tela (formulário, listas e modo de edição) e oferece os
+ * métodos chamados pelo HTML quando a pessoa clica nos botões.
+ */
 @Component({
   selector: 'app-cadastro-clientes',
   standalone: true,
   imports: [
+    // CommonModule fornece recursos comuns de template do Angular.
     CommonModule,
+    // ReactiveFormsModule permite usar formGroup, formControlName e FormControl.
     ReactiveFormsModule
   ],
   templateUrl: './cadastro-cliente.component.html',
@@ -27,18 +36,29 @@ interface Municipio {
 })
 export class CadastroClienteComponent {
 
+  // FormGroup reúne e gerencia todos os campos do formulário de cliente.
   formularioCliente: FormGroup;
 
+  // Este campo é independente do formulário porque pertence à área de pesquisa.
   campoPesquisa = new FormControl('');
 
+  // listaClientes guarda todos os cadastros apenas na memória do navegador.
+  // Ao atualizar ou fechar a página, os dados somem, pois não há banco de dados.
   listaClientes: Cliente[] = [];
+
+  // clientesFiltrados contém somente os registros que devem aparecer na tabela.
   clientesFiltrados: Cliente[] = [];
 
+  // Opções carregadas da API do IBGE para a UF selecionada.
   municipios: Municipio[] = [];
+
+  // Informa à tela que existe uma requisição em andamento.
   carregandoMunicipios = false;
 
+  // null significa "novo cadastro"; um id significa "edição em andamento".
   clienteEditandoId: string | null = null;
 
+  // Lista fixa das siglas das 27 unidades federativas brasileiras.
   ufs: string[] = [
     'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF',
     'ES', 'GO', 'MA', 'MT', 'MS', 'MG', 'PA',
@@ -47,9 +67,15 @@ export class CadastroClienteComponent {
   ];
 
   constructor(
+    // O Angular injeta estas dependências automaticamente.
     private formBuilder: FormBuilder,
     private http: HttpClient
   ) {
+    /*
+     * Cria os controles do formulário. Cada item contém o valor inicial e suas
+     * regras de validação. Por exemplo, nome é obrigatório e precisa ter ao
+     * menos três caracteres.
+     */
     this.formularioCliente = this.formBuilder.group({
       nome: ['', [Validators.required, Validators.minLength(3)]],
       email: ['', [Validators.required, Validators.email]],
@@ -59,22 +85,30 @@ export class CadastroClienteComponent {
       municipio: ['', [Validators.required]]
     });
 
+    // valueChanges é um fluxo de eventos: executa a pesquisa a cada digitação.
     this.campoPesquisa.valueChanges.subscribe(() => {
       this.pesquisarCliente();
     });
 
+    // Quando a UF muda, busca os municípios correspondentes.
+    // "?." só continua se o controle "uf" realmente existir.
     this.formularioCliente.get('uf')?.valueChanges.subscribe(uf => {
       this.carregarMunicipios(uf);
     });
   }
 
+  /** Busca na API do IBGE os municípios pertencentes à UF selecionada. */
   carregarMunicipios(uf: string): void {
+    // Remove opções da seleção anterior para não misturar estados diferentes.
     this.municipios = [];
 
+    // Também limpa o município escolhido anteriormente. emitEvent: false evita
+    // disparar eventos desnecessários durante essa limpeza feita pelo código.
     this.formularioCliente.get('municipio')?.reset('', {
       emitEvent: false
     });
 
+    // Sem UF não existe nada para consultar, então encerramos o método cedo.
     if (!uf) {
       this.carregandoMunicipios = false;
       return;
@@ -85,8 +119,14 @@ export class CadastroClienteComponent {
     const url =
       `https://servicodados.ibge.gov.br/api/v1/localidades/estados/${uf}/municipios`;
 
+    /*
+     * get faz uma requisição HTTP GET. O tipo <Municipio[]> informa qual formato
+     * esperamos receber. Como a resposta chega depois, subscribe define o que
+     * fazer no sucesso (next) e na falha (error).
+     */
     this.http.get<Municipio[]>(url).subscribe({
       next: municipios => {
+        // localeCompare ordena corretamente os nomes em ordem alfabética.
         this.municipios = municipios.sort((a, b) =>
           a.nome.localeCompare(b.nome)
         );
@@ -103,7 +143,9 @@ export class CadastroClienteComponent {
     });
   }
 
+  /** Valida o formulário, cria um cliente e o adiciona à lista em memória. */
   cadastrarCliente(): void {
+    // Se alguma regra falhar, mostra os erros e interrompe o cadastro.
     if (this.formularioCliente.invalid) {
       this.formularioCliente.markAllAsTouched();
       return;
@@ -111,7 +153,10 @@ export class CadastroClienteComponent {
 
     const cliente = new Cliente();
 
+    // Gera um identificador único para diferenciar clientes, mesmo com nomes iguais.
     cliente.id = crypto.randomUUID();
+
+    // Copia os valores digitados do FormGroup para o objeto Cliente.
     cliente.nome = this.formularioCliente.value.nome;
     cliente.email = this.formularioCliente.value.email;
     cliente.cpf = this.formularioCliente.value.cpf;
@@ -121,33 +166,43 @@ export class CadastroClienteComponent {
     cliente.municipio =
       this.formularioCliente.value.municipio;
 
+    // push insere o novo objeto no fim do array.
     this.listaClientes.push(cliente);
 
+    // Sincroniza a tabela com o filtro atual e prepara o formulário para o próximo uso.
     this.atualizarListaExibida();
     this.limparFormulario();
   }
 
+  /** Filtra clientes cujo nome contém o texto digitado na pesquisa. */
   pesquisarCliente(): void {
+    // trim remove espaços nas pontas e toLowerCase ignora maiúsculas/minúsculas.
+    // "?? ''" usa texto vazio se o controle não tiver um valor.
     const termo =
       this.campoPesquisa.value?.trim().toLowerCase() ?? '';
 
     if (termo === '') {
+      // O spread cria uma nova cópia do array, em vez de compartilhar a referência.
       this.clientesFiltrados = [...this.listaClientes];
       return;
     }
 
+    // filter cria um novo array somente com os itens que passam no teste.
     this.clientesFiltrados = this.listaClientes.filter(cliente =>
       cliente.nome.toLowerCase().includes(termo)
     );
   }
 
+  /** Limpa o campo; a inscrição em valueChanges refaz a lista automaticamente. */
   limparPesquisa(): void {
     this.campoPesquisa.setValue('');
   }
 
+  /** Preenche o formulário com um cliente e muda a tela para o modo de edição. */
   editarCliente(cliente: Cliente): void {
     this.clienteEditandoId = cliente.id;
 
+    // patchValue altera apenas os campos informados, preservando os demais.
     this.formularioCliente.patchValue({
       nome: cliente.nome,
       email: cliente.email,
@@ -161,6 +216,10 @@ export class CadastroClienteComponent {
 
     this.carregandoMunicipios = true;
 
+    /*
+     * A lista de municípios precisa chegar antes de selecionar o município do
+     * cliente. Por isso esse patchValue acontece dentro do next da requisição.
+     */
     this.http.get<Municipio[]>(url).subscribe({
       next: municipios => {
         this.municipios = municipios.sort((a, b) =>
@@ -183,12 +242,14 @@ export class CadastroClienteComponent {
     });
   }
 
+  /** Substitui na lista os dados do cliente que está sendo editado. */
   atualizarCliente(): void {
     if (this.formularioCliente.invalid) {
       this.formularioCliente.markAllAsTouched();
       return;
     }
 
+    // findIndex devolve a posição do cliente no array ou -1 se não o encontrar.
     const indice = this.listaClientes.findIndex(
       cliente => cliente.id === this.clienteEditandoId
     );
@@ -197,6 +258,8 @@ export class CadastroClienteComponent {
       return;
     }
 
+    // Substitui o objeto naquela posição e conserva o id original.
+    // O "!" afirma ao TypeScript que aqui o id não é null, pois estamos editando.
     this.listaClientes[indice] = {
       id: this.clienteEditandoId!,
       nome: this.formularioCliente.value.nome,
@@ -213,7 +276,9 @@ export class CadastroClienteComponent {
     this.limparFormulario();
   }
 
+  /** Remove da lista o cliente que possui o id recebido. */
   excluirCliente(id: string): void {
+    // Mantém todos os clientes, exceto aquele cujo id deve ser excluído.
     this.listaClientes = this.listaClientes.filter(
       cliente => cliente.id !== id
     );
@@ -221,11 +286,14 @@ export class CadastroClienteComponent {
     this.atualizarListaExibida();
   }
 
+  /** Reaplica a pesquisa atual depois que os dados da lista mudam. */
   atualizarListaExibida(): void {
     this.pesquisarCliente();
   }
 
+  /** Volta o formulário e o estado da tela ao modo de novo cadastro. */
   limparFormulario(): void {
+    // reset limpa os valores e também estados como touched e dirty.
     this.formularioCliente.reset();
     this.clienteEditandoId = null;
     this.municipios = [];

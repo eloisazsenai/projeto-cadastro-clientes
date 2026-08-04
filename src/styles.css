@@ -1,1 +1,5 @@
-/* You can add global styles to this file, and also import other style files */
+/*
+ * Este arquivo recebe estilos globais, aplicados à aplicação inteira.
+ * Estilos específicos do cadastro devem ficar no CSS do próprio componente,
+ * o que ajuda a manter cada parte da interface organizada e independente.
+ */
