@@ -1,5 +1,32 @@
-/*
- * Este arquivo recebe estilos globais, aplicados à aplicação inteira.
- * Estilos específicos do cadastro devem ficar no CSS do próprio componente,
- * o que ajuda a manter cada parte da interface organizada e independente.
- */
+@import url('https://fonts.googleapis.com/css2?family=Roboto+Condensed:ital,wght@0,100..900;1,100..900&display=swap');
+
+*{
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: "Roboto Condensed", sans-serif;
+}
+
+:root{
+    --bg: #F6F3FF;            /* Fundo da página */
+    --surface: #FFFFFF;       /* Cards/divs */
+    --primary: #6D28D9;       /* Roxo principal */
+    --primary-hover: #5B21B6; /* Hover dos botões */
+    --secondary: #A78BFA;     /* Roxo claro */
+    --border: #DDD6FE;        /* Bordas */
+    --text: #2E1065;          /* Texto principal */
+    --text-light: #6B7280;    /* Texto secundário */
+    --success: #10B981;       /* Opcional */
+    --danger: #EF4444;        /* Opcional */
+}
+
+body{
+    min-height: 100vh;
+    padding: 40px;
+    color: var(--text);
+    background-color: var(--bg);
+}
+
+button, input{
+    font: inherit;
+}
