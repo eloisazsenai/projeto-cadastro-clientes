@@ -178,37 +178,32 @@
       }
     </div>
 
-    <div class="botoes">
+<div class="botoes">
 
-      <!--
-        O id nulo indica um cadastro novo. Quando existe um id, o mesmo espaço
-        mostra o botão de atualização. (click) é um event binding: ao ocorrer o
-        clique, o Angular chama o método correspondente no TypeScript.
-      -->
-      @if (clienteEditandoId === null) {
-        <button
-          type="button"
-          (click)="cadastrarCliente()"
-        >
-          Cadastrar cliente
-        </button>
-      } @else {
-        <button
-          type="button"
-          (click)="atualizarCliente()"
-        >
-          Atualizar cliente
-        </button>
-      }
+  @if (clienteEditandoId === null) {
+    <button
+      type="button"
+      (click)="cadastrarCliente()"
+    >
+      Cadastrar cliente
+    </button>
+  } @else {
+    <button
+      type="button"
+      (click)="atualizarCliente()"
+    >
+      Atualizar cliente
+    </button>
+  }
 
-      <button
-        type="button"
-        (click)="limparFormulario()"
-      >
-        Limpar formulário
-      </button>
+  <button
+    class="botao-secundario"
+    type="button"
+    (click)="limparFormulario()"
+  >
+    Limpar formulário
+  </button>
 
-    </div>
-
+</div>
   </form>
 </div>

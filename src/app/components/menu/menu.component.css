@@ -15,5 +15,5 @@
 /* RouterLinkActive acrescenta esta classe somente ao link da página atual. */
 .menu a:hover,
 .menu a.ativo {
-  background: #2563eb;
+  background: var(--primary);
 }
